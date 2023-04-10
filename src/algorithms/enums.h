@@ -34,7 +34,10 @@ BETTER_ENUM(PrimitiveType, char,
     stats,
 
 /* FD verifier algorithm */
-    fd_verifier
+    fd_verifier,
+
+/* Unique Column Combination mining algorithms */
+    hyucc
 )
 
 // clang-format on
