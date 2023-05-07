@@ -32,7 +32,10 @@ public:
     static algos::StdParamsMap GetParamMap(std::filesystem::path const& path, char separator = ',',
                                            bool has_header = true) {
         using namespace algos::config::names;
-        return {{kData, path}, {kSeparator, separator}, {kHasHeader, has_header}};
+        return {{kData, path},
+                {kSeparator, separator},
+                {kHasHeader, has_header},
+                {kThreads, (ushort)1}};
     }
 
     static std::unique_ptr<algos::UCCAlgorithm> CreateAlgorithmInstance(std::string const& filename,
@@ -40,15 +43,6 @@ public:
                                                                         bool has_header = true) {
         return algos::CreateAndLoadPrimitive<AlgorithmUnderTest>(
                 GetParamMap(test_data_dir / filename, separator, has_header));
-    }
-
-    static std::unique_ptr<algos::FDAlgorithm> CreateFDAlgorithmInstance(
-            std::string const& filename, char separator = ',', bool has_header = true) {
-        using namespace algos::config::names;
-        algos::StdParamsMap m = GetParamMap(test_data_dir / filename, separator, has_header);
-        m.emplace(kError, algos::config::ErrorType{0.0});
-        m.emplace(kSeed, decltype(Configuration::seed){0});
-        return algos::CreateAndLoadPrimitive<algos::Pyro>(std::move(m));
     }
 
     static inline const std::vector<Dataset> light_datasets_ = {
