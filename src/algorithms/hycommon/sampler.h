@@ -4,10 +4,12 @@
 #include <queue>
 #include <vector>
 
+#include <boost/asio/thread_pool.hpp>
 #include <boost/dynamic_bitset.hpp>
 
 #include "all_column_combinations.h"
 #include "hyfd/hyfd_config.h"
+#include "options/thread_number/type.h"
 #include "types.h"
 #include "util/position_list_index.h"
 
@@ -21,10 +23,15 @@ private:
     PLIsPtr plis_;
     RowsPtr compressed_records_;
     std::priority_queue<Efficiency> efficiency_queue_;
-
     std::unique_ptr<AllColumnCombinations> agree_sets_;
+    config::ThreadNumType threads_num_;
+    std::unique_ptr<boost::asio::thread_pool> pool_;
+
 
     void ProcessComparisonSuggestions(IdPairs const& comparison_suggestions);
+    void SortClustersSeq();
+    void SortClustersParallel();
+    void SortClusters();
     void InitializeEfficiencyQueue();
 
     void Match(boost::dynamic_bitset<>& attributes, size_t first_record_id,
@@ -32,7 +39,7 @@ private:
     void RunWindow(Efficiency& efficiency, util::PositionListIndex const& pli);
 
 public:
-    Sampler(PLIsPtr plis, RowsPtr pli_records);
+    Sampler(PLIsPtr plis, RowsPtr pli_records, config::ThreadNumType threads = 1);
 
     Sampler(Sampler const& other) = delete;
     Sampler(Sampler&& other) = delete;
