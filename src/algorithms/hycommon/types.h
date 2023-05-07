@@ -1,6 +1,11 @@
 #include <memory>
 #include <utility>
 #include <vector>
+#ifdef SIMD
+#include <immintrin.h>
+
+#include <boost/align/aligned_allocator.hpp>
+#endif
 
 namespace util {
 
@@ -18,7 +23,11 @@ using ClusterId = unsigned int;
 // of the relation
 using PLIs = std::vector<util::PositionListIndex*>;
 using PLIsPtr = std::shared_ptr<PLIs>;
+#ifdef SIMD
+using Row = std::vector<TablePos, boost::alignment::aligned_allocator<TablePos, alignof(__m256i)>>;
+#else
 using Row = std::vector<TablePos>;
+#endif
 // Represents a relation as a list of rows where each row is a list of row values
 using Rows = std::vector<Row>;
 // Represents a relation as a list of column where each column is a list of column values

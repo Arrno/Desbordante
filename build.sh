@@ -10,6 +10,8 @@ Usage: ./build.sh [-h|--help] [-p|--pybind] [-t|--tests] [-u|--unpack] [-jN|--jo
   -u,         --no-unpack             Don't unpack datasets
   -j[N],      --jobs[=N]              Allow N jobs at once (default [=1])
   -d,         --debug                 Set debug build type
+  -s,         --simd                  Use optimizations with SIMD intrinsics
+  -g,         --symbols               Build with Debug symbols, useful for profiling
 EOF
 }
 
@@ -30,6 +32,12 @@ for i in "$@"
             ;;
         -d|--debug) # Set debug build type
             DEBUG_MODE=true
+            ;;
+        -s|--simd) # Use optimizations with SIMD
+            SIMD=true
+            ;;
+        -g|--symbols) # Build with Debug symbols
+            DEBUG_SYMBOLS=true
             ;;
         -h|--help|*) # Display help.
             print_help
@@ -71,9 +79,17 @@ if [[ $DEBUG_MODE != true ]]; then
   PREFIX="$PREFIX -D CMAKE_BUILD_TYPE=Release"
 fi
 
+if [[ $SIMD == true ]]; then
+  PREFIX="$PREFIX -D SIMD=ON"
+fi
+
+if [[ $DEBUG_SYMBOLS == true ]]; then
+  PREFIX="$PREFIX -D DEBUG_SYMBOLS=ON"
+fi
+
 cd ..
 mkdir -p build
 cd build
 rm CMakeCache.txt
-cmake $PREFIX ..
+cmake -L -D CMAKE_C_COMPILER=/usr/bin/gcc-11 -D CMAKE_CXX_COMPILER=/usr/bin/g++-11 $PREFIX ..
 make $JOBS_OPTION

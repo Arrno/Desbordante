@@ -4,6 +4,10 @@
 #include <memory>
 #include <utility>
 
+#ifdef SIMD
+#include <immintrin.h>
+#endif
+
 #include <boost/asio/post.hpp>
 #include <boost/asio/thread_pool.hpp>
 #include <boost/dynamic_bitset.hpp>
@@ -272,6 +276,46 @@ ColumnCombinationList Sampler::GetAgreeSets(IdPairs const& comparison_suggestion
 
 void Sampler::Match(boost::dynamic_bitset<>& attributes, size_t first_record_id,
                     size_t second_record_id) {
+#ifdef SIMD
+    assert(first_record_id < compressed_records_->size() &&
+           second_record_id < compressed_records_->size());
+    static_assert(sizeof(TablePos) == 4);
+
+    const size_t size = compressed_records_->front().size();
+    const unsigned vec_size = static_cast<unsigned>(size - size % 8);
+
+    for (unsigned i = 0; i < vec_size; i += 8) {
+        __m256i val1 = _mm256_load_si256(
+                reinterpret_cast<const __m256i*>(&(*compressed_records_)[first_record_id][i]));
+        __m256i val2 = _mm256_load_si256(
+                reinterpret_cast<const __m256i*>(&(*compressed_records_)[second_record_id][i]));
+
+        __m256i singleton = _mm256_set1_epi32(-1);
+
+        __m256i is_not_singleton1 = _mm256_cmpgt_epi32(val1, singleton);
+        __m256i is_not_singleton2 = _mm256_cmpgt_epi32(val2, singleton);
+
+        __m256i equal_vals = _mm256_cmpeq_epi32(val1, val2);
+        __m256i valid_attributes = _mm256_and_si256(
+                _mm256_and_si256(is_not_singleton1, is_not_singleton2), equal_vals);
+
+        int mask = _mm256_movemask_epi8(valid_attributes);
+
+        for (int valid_attr_index = 0; valid_attr_index != 8; ++valid_attr_index) {
+            attributes.set(i + valid_attr_index, mask & (1 << (valid_attr_index * 4)));
+        }
+    }
+
+    // Scalar loop for the remaining elements
+    for (unsigned i = vec_size; i < size; ++i) {
+        TablePos const val1 = (*compressed_records_)[first_record_id][i];
+        TablePos const val2 = (*compressed_records_)[second_record_id][i];
+        if (val1 != static_cast<TablePos>(-1) && val2 != static_cast<TablePos>(-1) &&
+            val1 == val2) {
+            attributes.set(i);
+        }
+    }
+#else
     assert(first_record_id < compressed_records_->size() &&
            second_record_id < compressed_records_->size());
 
@@ -283,6 +327,7 @@ void Sampler::Match(boost::dynamic_bitset<>& attributes, size_t first_record_id,
             attributes.set(i);
         }
     }
+#endif
 }
 
 Sampler::Sampler(PLIsPtr plis, RowsPtr pli_records, config::ThreadNumType threads)
