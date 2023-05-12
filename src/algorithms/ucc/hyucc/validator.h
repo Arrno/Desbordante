@@ -26,8 +26,8 @@ private:
     config::ThreadNumType threads_num_ = 1;
 
     bool IsUnique(util::PLI const& pivot_pli, model::RawUCC const& ucc,
-                  hy::IdPairs& comparison_suggestions);
-    UCCValidations GetValidations(LhsPair const& vertex_and_ucc);
+                  hy::IdPairs& comparison_suggestions) const;
+    UCCValidations GetValidations(LhsPair const& vertex_and_ucc) const;
     UCCValidations ValidateAndExtendSeq(std::vector<LhsPair> const& current_level);
     UCCValidations ValidateAndExtendParallel(std::vector<LhsPair> const& current_level);
     UCCValidations ValidateAndExtend(std::vector<LhsPair> const& current_level);

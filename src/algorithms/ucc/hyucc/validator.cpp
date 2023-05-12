@@ -51,7 +51,7 @@ namespace algos {
 using model::RawUCC;
 
 bool Validator::IsUnique(util::PLI const& pivot_pli, RawUCC const& ucc,
-                         hy::IdPairs& comparison_suggestions) {
+                         hy::IdPairs& comparison_suggestions) const {
     std::vector<hy::ClusterId> indices = util::BitsetToIndices<hy::ClusterId>(ucc);
     for (util::PLI::Cluster const& cluster : pivot_pli.GetIndex()) {
         auto cluster_to_record =
@@ -75,7 +75,7 @@ bool Validator::IsUnique(util::PLI const& pivot_pli, RawUCC const& ucc,
     return true;
 }
 
-Validator::UCCValidations Validator::GetValidations(LhsPair const& vertex_and_ucc) {
+Validator::UCCValidations Validator::GetValidations(LhsPair const& vertex_and_ucc) const {
     auto [vertex, ucc] = vertex_and_ucc;
     UCCValidations validations;
     validations.set_count_validations(1);
@@ -131,12 +131,12 @@ Validator::UCCValidations Validator::ValidateAndExtendParallel(
         validation_futures.push_back(task.get_future());
         boost::asio::post(pool, std::move(task));
     }
-    pool.join();
 
     for (auto& future : validation_futures) {
-        assert(future.valid());
         result.Add(future.get());
     }
+
+    pool.join();
 
     return result;
 }

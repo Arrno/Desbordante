@@ -49,7 +49,7 @@ endif()
 
 # configuring boost
 set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost 1.82.0 REQUIRED COMPONENTS container program_options thread)
+find_package(Boost 1.82.0 REQUIRED COMPONENTS container program_options thread chrono)
 include_directories(${Boost_INCLUDE_DIRS})
 message(${Boost_INCLUDE_DIRS})
 

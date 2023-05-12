@@ -10,7 +10,7 @@ add_test(NAME ${BINARY} COMMAND ${BINARY})
 
 # linking with gtest and implemented classes
 target_link_libraries(${BINARY} PUBLIC ${CMAKE_PROJECT_NAME}_lib)
-target_link_libraries(${BINARY} LINK_PUBLIC gtest gmock Boost::thread easyloggingpp)
+target_link_libraries(${BINARY} LINK_PUBLIC gtest gmock Boost::thread easyloggingpp Boost::chrono)
 
 # copying sample csv's for testing
 add_custom_target(copy-files ALL

@@ -35,7 +35,7 @@ public:
         return {{kData, path},
                 {kSeparator, separator},
                 {kHasHeader, has_header},
-                {kThreads, (ushort)1}};
+                {kThreads, (ushort)4}};
     }
 
     static std::unique_ptr<algos::UCCAlgorithm> CreateAlgorithmInstance(std::string const& filename,

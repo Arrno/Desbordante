@@ -1,6 +1,7 @@
 #include "sampler.h"
 
 #include <algorithm>
+#include <iostream>
 #include <memory>
 #include <utility>
 
@@ -8,6 +9,7 @@
 #include <immintrin.h>
 #endif
 
+#define BOOST_THREAD_USES_CHRONO
 #include <boost/asio/post.hpp>
 #include <boost/asio/thread_pool.hpp>
 #include <boost/dynamic_bitset.hpp>
@@ -140,6 +142,7 @@ void Sampler::ProcessComparisonSuggestions(IdPairs const& comparison_suggestions
 void Sampler::SortClustersParallel() {
     ColumnSlider column_slider(plis_->size());
     std::vector<boost::unique_future<void>> sort_futures;
+    sort_futures.reserve(plis_->size());
     for (util::PLI* pli : *plis_) {
         ClusterComparator cluster_comparator(compressed_records_.get(),
                                              column_slider.GetLeftNeighbor(),
@@ -182,29 +185,86 @@ void Sampler::SortClusters() {
 
 void Sampler::InitializeEfficiencyQueueParallel() {
     using EfficiencyAndMatches = std::pair<Efficiency, std::vector<boost::dynamic_bitset<>>>;
-    std::vector<boost::unique_future<EfficiencyAndMatches>> futures;
-    for (size_t attr = 0; attr < plis_->size(); ++attr) {
-        auto run_window = [attr, this]() {
-            Efficiency efficiency(attr);
-            return std::make_pair(efficiency, RunWindowRet(efficiency, *(*plis_)[attr]));
+    //std::vector<boost::unique_future<EfficiencyAndMatches>> futures;
+    std::vector<boost::unique_future<std::vector<EfficiencyAndMatches>>> futures;
+    futures.reserve(plis_->size());
+    size_t attrs_per_thread = plis_->size() / threads_num_;
+    if (attrs_per_thread == 0) {
+        attrs_per_thread = 1;
+    }
+    //size_t attrs_per_thread = 4;
+    for (size_t attr = 0; attr < plis_->size(); attr += attrs_per_thread) {
+        auto run_window = [attr, this, attrs_per_thread]() {
+            std::vector<EfficiencyAndMatches> efficiency_and_matches;
+            for (size_t i = 0; i != attrs_per_thread && attr + i < plis_->size(); ++i) {
+                auto* pli = (*plis_)[attr + i];
+                Efficiency efficiency(attr + i);
+                efficiency_and_matches.emplace_back(efficiency, RunWindowRet(efficiency, *pli));
+            }
+
+            return efficiency_and_matches;
         };
-        boost::packaged_task<EfficiencyAndMatches> task(std::move(run_window));
+        //auto run_window = [attr, pli=(*plis_)[attr], this]() {
+        //    Efficiency efficiency(attr);
+        //    return std::make_pair(efficiency, RunWindowRet(efficiency, *pli));
+        //};
+        //boost::packaged_task<EfficiencyAndMatches> task(std::move(run_window));
+        //futures.push_back(task.get_future());
+
+        boost::packaged_task<std::vector<EfficiencyAndMatches>> task(std::move(run_window));
         futures.push_back(task.get_future());
         boost::asio::post(*pool_, std::move(task));
     }
 
-    boost::wait_for_all(futures.begin(), futures.end());
+    //boost::wait_for_all(futures.begin(), futures.end());
+    //boost::wait_for_all(futures.begin() + (long)futures.size() / 2, futures.end());
+    //boost::wait_for_all(futures.front(), futures.back());
+    //boost::wait_for_all(futures.front());
+    //boost::mutex mutex;
+    {
+    //boost::unique_lock<boost::mutex> lock(mutex);
+    if (!std::all_of(futures.begin(), futures.end(), [this, attrs_per_thread](auto& future) {
+            // return future.wait_for(boost::chrono::milliseconds(1)) ==
+            // boost::future_status::ready;
+            if (future.wait_for(boost::chrono::milliseconds(attrs_per_thread)) == boost::future_status::ready) {
+                auto efficiency_and_matches = future.get();
+
+                for (auto& [efficiency, matches] : efficiency_and_matches) {
+                    for (auto& match : matches) {
+                        agree_sets_->Add(std::move(match));
+                    }
+
+                    if (efficiency.CalcEfficiency() > 0) {
+                        efficiency_queue_.push(efficiency);
+                    }
+                }
+
+                return true;
+            }
+            return false;
+        })) {
+        //std::cout << "waiting\n";
+        boost::wait_for_all(futures.begin(), futures.end());
+    } else {
+        std::cout << "not waiting\n";
+    }}
 
     for (auto& future : futures) {
-        auto [efficiency, matches] = future.get();
-
-        for (auto& match : matches) {
-            agree_sets_->Add(std::move(match));
+        if (!future.valid()) {
+            continue;
         }
+         //auto [efficiency, matches] = future.get();
+         auto efficiency_and_matches = future.get();
 
-        if (efficiency.CalcEfficiency() > 0) {
-            efficiency_queue_.push(efficiency);
-        }
+         for (auto& [efficiency, matches] : efficiency_and_matches) {
+             for (auto& match : matches) {
+                 agree_sets_->Add(std::move(match));
+             }
+
+             if (efficiency.CalcEfficiency() > 0) {
+                 efficiency_queue_.push(efficiency);
+             }
+         }
     }
 }
 
