@@ -145,7 +145,7 @@ algo.execute(lhs_indices=LHS_INDICES, metric=METRIC,
 if algo.mfd_holds():
     print('MFD holds')
 else:
-    print('MFD not holds')
+    print('MFD does not hold')
 ```
 ```text
 MFD holds
