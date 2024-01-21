@@ -6,9 +6,13 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 add_library(${BINARY} STATIC ${lib_sources})
+add_executable(cli ${lib_sources} main.cpp)
 set_property(TARGET ${BINARY} PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(${BINARY} PRIVATE ${Boost_LIBRARIES} Threads::Threads)
 target_link_libraries(${BINARY} PUBLIC easyloggingpp)
+
+target_link_libraries(cli PRIVATE ${Boost_LIBRARIES} Threads::Threads)
+target_link_libraries(cli PUBLIC easyloggingpp)
 
 option(SAFE_VERTICAL_HASHING
         "Enable safe vertical hashing. This feature allows to process\
