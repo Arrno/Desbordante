@@ -10,11 +10,11 @@ namespace algos::order {
 void SortedPartition::BuildHashTable() {
     hash_partition.reserve(num_rows);
     for (PartitionIndex i = 0; i < sorted_partition.size(); ++i) {
-        if (sorted_partition[i].size() == 1) {
+        if (sorted_partition.at(i).size() == 1) {
             continue;
         }
         for (model::TupleIndex tuple_index : sorted_partition[i]) {
-            hash_partition[tuple_index] = i;
+            hash_partition.emplace(tuple_index, i);
         }
     }
 }
@@ -28,15 +28,17 @@ SortedPartition::HashProduct SortedPartition::BuildHashProduct(SortedPartition c
         }
         std::unordered_set<PartitionIndex> visited_positions;
         for (model::TupleIndex tuple_index : eq_class) {
-            if (hash_partition.find(tuple_index) == hash_partition.end()) {
+            auto it = hash_partition.find(tuple_index);
+            if (it == hash_partition.end()) {
                 continue;
             }
-            PartitionIndex position = hash_partition[tuple_index];
+            PartitionIndex position = it->second;
             visited_positions.insert(position);
-            if (hash_product.find(position) == hash_product.end()) {
-                hash_product[position] = {{}};
+            auto pos_it = hash_product.find(position);
+            if (pos_it == hash_product.end()) {
+                pos_it = hash_product.emplace(position, EquivalenceClasses{{}}).first;
             }
-            hash_product[position].back().insert(tuple_index);
+            pos_it->second.back().insert(tuple_index);
         }
         for (PartitionIndex position : visited_positions) {
             hash_product[position].push_back({});
