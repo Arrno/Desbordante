@@ -19,7 +19,7 @@ public:
     CanonicalOD() noexcept = default;
     CanonicalOD(AttributeSet const& context, model::ColumnIndex left, model::ColumnIndex right);
 
-    bool IsValid(std::shared_ptr<DataFrame> data, PartitionCache& cache) const;
+    bool IsValid(DataFrame const& data, PartitionCache& cache) const;
     std::string ToString() const;
 
     friend bool operator==(CanonicalOD<od::Ordering::ascending> const& x,
@@ -50,7 +50,7 @@ public:
     SimpleCanonicalOD();
     SimpleCanonicalOD(AttributeSet const& context, model::ColumnIndex right);
 
-    bool IsValid(std::shared_ptr<DataFrame> data, PartitionCache& cache) const;
+    bool IsValid(DataFrame const& data, PartitionCache& cache) const;
     std::string ToString() const;
 
     friend bool operator==(SimpleCanonicalOD const& x, SimpleCanonicalOD const& y);
