@@ -22,6 +22,18 @@ public:
     bool IsValid(DataFrame const& data, PartitionCache& cache) const;
     std::string ToString() const;
 
+    AttributeSet const& GetContext() const noexcept {
+        return context_;
+    }
+
+    model::ColumnIndex GetLeftColumn() const noexcept {
+        return ap_.left;
+    }
+
+    model::ColumnIndex GetRightColumn() const noexcept {
+        return ap_.right;
+    }
+
     friend bool operator==(CanonicalOD<od::Ordering::ascending> const& x,
                            CanonicalOD<od::Ordering::ascending> const& y);
     friend bool operator!=(CanonicalOD<od::Ordering::ascending> const& x,
@@ -52,6 +64,14 @@ public:
 
     bool IsValid(DataFrame const& data, PartitionCache& cache) const;
     std::string ToString() const;
+
+    AttributeSet const& GetContext() const noexcept {
+        return context_;
+    }
+
+    model::ColumnIndex GetRightColumn() const noexcept {
+        return right_;
+    }
 
     friend bool operator==(SimpleCanonicalOD const& x, SimpleCanonicalOD const& y);
     friend bool operator!=(SimpleCanonicalOD const& x, SimpleCanonicalOD const& y);
